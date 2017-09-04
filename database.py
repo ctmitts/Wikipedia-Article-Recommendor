@@ -2,7 +2,7 @@ import psycopg2 as pg2
 from psycopg2.extras import RealDictCursor
 import re
 import pandas as pd
-import request_categories as rc
+import request_category as rc
 
 def connect_to_db():
     con = pg2.connect(host='postgres',
@@ -24,24 +24,30 @@ def query_to_dictionary(query, fetch_res=True):
 def query_to_dataframe(query):
     return pd.DataFrame(query_to_dictionary(query))
 
-## New
-def update_page_table(pageid, title):
-    clean_text = rc.grab_content( pageid)
-    clean_title = re.sub('[^a-z0-9 ]',' ', title.lower())
-    #cleaned_text = rc.cleaner( text)
-    query = """BEGIN;
-               INSERT INTO pages (pageid, title, article) VALUES ({}, '{}', '{}');
-               COMMIT;""".format(pageid, clean_title, clean_text )
-    query = re.sub( "\s+", " ", query)
-    return query_to_dictionary( query, fetch_res = False)
+def clear_table( *tables):
+    for table in tables:
+        query = """BEGIN;DELETE FROM {};COMMIT;""".format( table)
+        query_to_dictionary(query, fetch_res = False )
 
-## Original
-#def update_page_table(pageid, title, text):
+## New
+#def update_page_table(pageid, title):
+#    clean_text = rc.grab_content( pageid)
+#    clean_title = re.sub('[^a-z0-9 ]','', title.lower())
+#    #cleaned_text = rc.cleaner( text)
 #    query = """BEGIN;
 #               INSERT INTO pages (pageid, title, article) VALUES ({}, '{}', '{}');
-#               COMMIT;""".format(pageid, title, text )
+#               COMMIT;""".format(pageid, clean_title, clean_text )
 #    query = re.sub( "\s+", " ", query)
 #    return query_to_dictionary( query, fetch_res = False)
+
+## Original
+def update_page_table(pageid, title, text):
+    clean_title = re.sub('[^a-z0-9 ]','', title.lower())
+    query = """BEGIN;
+               INSERT INTO pages (pageid, title, article) VALUES ({}, '{}', '{}');
+               COMMIT;""".format(pageid, clean_title, text )
+    query = re.sub( "\s+", " ", query)
+    return query_to_dictionary( query, fetch_res = False)
 
 def update_category_table(category):
     query = """BEGIN;
@@ -50,6 +56,7 @@ def update_category_table(category):
     #ALTER TABLE category category_id SERIAL PRIMARY KEY;
     query = re.sub( "\s+", " ", query)
     return query_to_dictionary( query, fetch_res = False)
+
     
 def update_sub_category_table(subcategory, category):
     #clean_subcategory = re.sub('[^a-z0-9 ]',' ', subcategory.lower())
@@ -61,13 +68,37 @@ def update_sub_category_table(subcategory, category):
     query = re.sub("\s+", " ", query)
     return query_to_dictionary( query, fetch_res = False)
 
-def update_page_category_table( pageid, subcategory):
+## Original
+#def update_page_category_table( pageid, subcategory):
+#    query = """BEGIN;
+#               INSERT INTO page_category (pageid, subcategory_id) 
+#               VALUES ({}, (SELECT subcategory_id FROM subcategories WHERE subcategory = '{}'));
+#               COMMIT;""".format( pageid, subcategory)
+#    query = re.sub("\s+", " ", query)
+#    return query_to_dictionary( query, fetch_res = False)
+
+def update_page_category_table( pageid, subcategory, category, display = False):
+    query_for_category_id = """SELECT category_id
+                            FROM categories
+                            WHERE category = '{}'""".format( category)
+
+    query_for_subcategory_id = """SELECT subcategory_id 
+                              FROM subcategories
+                              WHERE subcategory = '{}'
+                              AND category_id = ({})""".format( subcategory, query_for_category_id)
     query = """BEGIN;
                INSERT INTO page_category (pageid, subcategory_id) 
-               VALUES ({}, (SELECT subcategory_id FROM subcategories WHERE subcategory = '{}'));
-               COMMIT;""".format( pageid, subcategory)
+               VALUES ({}, ({}));
+               COMMIT;""".format( pageid, query_for_subcategory_id)
+    #query = """BEGIN;
+    #           INSERT INTO page_category (pageid, subcategory_id) 
+    #           VALUES ({}, (SELECT subcategory_id FROM subcategories WHERE subcategory = '{}'));
+    #           COMMIT;""".format( pageid, subcategory)
     query = re.sub("\s+", " ", query)
-    return query_to_dictionary( query, fetch_res = False)
+    if display:
+        return query
+    else:
+        return query_to_dictionary( query, fetch_res = False)
 
 def category_query( *category, df = False):
     innerquery = """SELECT stuff.category, stuff.subcategory, pc.pageid
@@ -75,7 +106,7 @@ def category_query( *category, df = False):
                           FROM subcategories sc 
                           JOIN categories c 
                           ON sc.category_id = c.category_id
-                          WHERE category IN {} ) as stuff
+                          WHERE category IN ({}) ) as stuff
                     JOIN page_category pc
                     ON stuff.subcategory_id = pc.subcategory_id""".format(*category)
     innerquery = re.sub( "\s+"," ", innerquery)
@@ -92,5 +123,30 @@ def page_query( *category):
                    ON crap.pageid = p.pageid;""".format( innerquery)
     outerquery = re.sub( "\s+", " ", outerquery)
     return query_to_dataframe( outerquery)
+
+
+def query_pages_by_category( category, limit = False):
+    inner_query = """SELECT stuff.category, stuff.subcategory, pc.pageid 
+              FROM ( SELECT category, subcategory, subcategory_id 
+                     FROM subcategories sc 
+                         JOIN categories c 
+                         ON sc.category_id = c.category_id 
+                     WHERE category = '{}' ) as stuff 
+              JOIN page_category pc 
+              ON stuff.subcategory_id = pc.subcategory_id""".format( category)
+
+    if limit:
+        limit = ' LIMIT {}'.format( limit)
+    else: 
+        limit = ''
+
+    pages_query = """SELECT crap.category, crap.subcategory, crap.pageid, p.title, p.article
+                        FROM ({}) as crap
+                        INNER JOIN pages p
+                        ON crap.pageid = p.pageid{}""".format( inner_query, limit) 
+    pages_query = re.sub( "\s+"," ", pages_query)  
+    return pages_query
+    
+    
 
 
