@@ -122,7 +122,7 @@ def get_pages( category, depth=3, category_dict= {}, first_run = True  ):  ## Re
             try:
                 category_dict[category] = pd.concat( category_dict[category])
                 category_dict[category]['category'] = category
-                category_dict[category] = category_dict[ category].drop_duplicates( subset = ['category','subcategory','pageid','title'], keep = 'last') #, keep = 'first'  If a nested category is part of multiple children nodes, remove the extra copies for each category
+                category_dict[category] = category_dict[ category].drop_duplicates( subset = ['category', 'subcategory', 'pageid', 'title'], keep = 'last') # If nested category is part of multiple children nodes, remove the extra copies,each category
                 return category_dict
             except:
                 return category_dict
@@ -169,7 +169,7 @@ def fill_unique_pages( category, depth = 3, grab = False):
     unique_pages_df = category_pages_df.drop_duplicates(subset = ['pageid', 'title']).reset_index( drop = True).copy() 
     categories_df = category_pages_df.drop_duplicates( subset = ['category']).reset_index( drop=True).copy()
     subcategories_df = category_pages_df.drop_duplicates( subset = ['category', 'subcategory']).reset_index(drop=True).copy()
-    subcat_page_df = category_pages_df.drop_duplicates( subset = ['subcategory', 'pageid']).reset_index( drop=True).copy()
+    subcat_page_df = category_pages_df#.drop_duplicates( subset = ['subcategory', 'pageid']).reset_index( drop=True).copy()
         
     n_grabs = unique_pages_df.shape[0]
         
@@ -183,8 +183,8 @@ def fill_unique_pages( category, depth = 3, grab = False):
         unique_pages_df.loc[:,'article'] = unique_pages_df.article.apply( cleaner )  ## Now Clean
         df_tup = (category_pages_df, unique_pages_df, categories_df, subcategories_df, subcat_page_df)
          
-        pickle_file = re.sub( ' ', '_', category) + '_dfs.p'
-        pickle_path = './docker/postgres/data/' + pickle_file
+        pickle_file = re.sub( ' ', '_', category) + '_dfs' + str(depth) + '.p'
+        pickle_path = './pickles/' + pickle_file
         ## write pickle (binary)
         with open( pickle_path, 'wb') as f:
             pickle.dump( df_tup, f)

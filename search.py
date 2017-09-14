@@ -23,7 +23,7 @@ import sklearn.externals.joblib
 
 #%matplotlib inline
 
-def get_data(*categories):
+def get_data(*categories, all = False):
     queries = []
     for category in categories:
         cat_query = db.query_pages_by_category( category)

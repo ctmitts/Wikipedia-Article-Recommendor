@@ -59,9 +59,10 @@ def train():
     
     
     
-def predict(article, pckle = True, n = 5 ):
+def predict(article, pckle = False, n = 5 ):
     
-    '''Pass article name as title, pageid, or url, Return top 5 predicted categories by default'''
+    '''Pass article name as title, pageid, or url, Return top 5 predicted categories by default
+        TRY: Slack (software),Saffron Technology, Brain, Statistics, TensorFlow, Tableau Software'''
 
     pages_df = search.get_data( 'machine learning', 'business software')
     
@@ -76,6 +77,7 @@ def predict(article, pckle = True, n = 5 ):
         gs_lr_pipe = sklearn.externals.joblib.load('./pickles/LogitModel1.p')
         
     else:
+        print( 'Training Model, please wait...')
         gs_lr_pipe = train()
     # Slack (software),Saffron Technology, Brain, Statistics, TensorFlow, Tableau Software
     
