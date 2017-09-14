@@ -50,8 +50,8 @@ def download( *category, depth, pckle = False):  ## pickle = True -->  Search da
         print("\t\t\tUpdating page-category (link) table")
         #subcat_page_df = category_pages_df.drop_duplicates( subset = ['subcategory', 'pageid']).copy()
         ## TEST
-        #results = subcat_page_df.apply( lambda x: db.update_page_category_table( x.pageid, x.subcategory, x.category), axis = 1)
-        results = category_pages_df.apply( lambda x: db.update_page_category_table( x.pageid, x.subcategory, x.category), axis = 1)
+        results = subcat_page_df.apply( lambda x: db.update_page_category_table( x.pageid, x.subcategory, x.category), axis = 1)
+        #results = category_pages_df.apply( lambda x: db.update_page_category_table( x.pageid, x.subcategory, x.category), axis = 1)
         timeduration = round((datetime.now()-start).seconds/60,2) ## minutes
         
         print("\t\t\tDownloading Article colletion, update of database tables took a total of {} minutes.".format(timeduration) )
