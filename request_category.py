@@ -47,7 +47,9 @@ def get_article( search_term ):# title or page id, Capitalization ignored
     
     article_text, pageid = get_json( search_term, query)
     
-    return article_text, pageid
+    clean_article_text = cleaner( article_text)
+    
+    return clean_article_text, pageid ## applied cleaner
 
 def format_search( category):
     category_query = re.sub( '\s', '+', category.lower())

@@ -146,7 +146,27 @@ def query_pages_by_category( category, limit = False):
                         ON crap.pageid = p.pageid{}""".format( inner_query, limit) 
     pages_query = re.sub( "\s+"," ", pages_query)  
     return pages_query
-    
-    
 
 
+def get_data(*categories, unique = False):  
+    queries = []
+    for category in categories:
+        cat_query = query_pages_by_category( category)
+        
+        queries.append( cat_query)
+    if len( categories) > 1:  ## Only works for n_categories = 2 
+        pages_query = """SELECT b.category, b.subcategory, b.title, b.pageid, b.article
+                 FROM (({}) UNION ({}) ) as b;""".format( queries[0], queries[1])
+    else: 
+        pages_query = cat_query + ";"
+    pages_df = query_to_dataframe( pages_query)
+    empty_mask =  pages_df.article == ''
+    nonempty_pages_df = pages_df[~empty_mask].reset_index(drop = True).copy()
+    nonempty_pages_df.index = nonempty_pages_df.pageid
+    
+    if unique:
+        nonempty_pages_df.drop_duplicates(subset = ['pageid', 'title'],inplace = True)
+        nonempty_pages_df.reset_index( drop = True, inplace= True) 
+    
+    nonempty_pages_df.drop( ['pageid'], axis = 1, inplace = True)
+    return nonempty_pages_df
